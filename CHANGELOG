@@ -1,0 +1,4 @@
+SimpleLog.pm:
+============
+0.3: first public version (beta)
+0.4: add support for dynamic log levels
