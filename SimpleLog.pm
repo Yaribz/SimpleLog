@@ -21,7 +21,7 @@ package SimpleLog;
 use strict;
 use FileHandle;
 
-my $moduleVersion='0.4';
+my $moduleVersion='0.5';
 
 my %defaultConf = (logFiles => [],
                    logLevels => [],
@@ -35,7 +35,7 @@ my %defaultLog = (fileHandle => undef,
                   useANSICode => 0);
 
 my @levels = ('CRITICAL','ERROR   ','WARNING ','NOTICE  ','INFO    ','DEBUG   ');
-my @ansiCodes = (35,31,33,34,37,36);
+my @ansiCodes = (35,31,33,32,37,36);
 
 sub getVersion {
   return $moduleVersion;
@@ -51,7 +51,7 @@ sub buildTimestamp {
 sub new {
   my ($objectOrClass,%params) = @_;
   my $class = ref($objectOrClass) || $objectOrClass;
-  my $self = {logs => []};
+  my $self = {logs => [\%defaultLog]};
   bless ($self, $class);
   foreach my $param (keys %defaultConf) {
     $self->{$param}=$defaultConf{$param};
@@ -72,6 +72,11 @@ sub new {
     || ($#logFiles != $#useTimestamps) ) {
     $self->log("[SimpleLog] Unable to initialize SimpleLog, inconsistent constructor parameters",0);
     return 0;
+  }
+  my $ansiCodesSupported=1;
+  if($^O eq 'MSWin32') {
+    eval 'use Win32::Console::ANSI';
+    $ansiCodesSupported=0 if($@);
   }
   my @logs;
   my $logIndex=0;
@@ -95,11 +100,15 @@ sub new {
       next;
     }
     if($useANSICode != 0 && $useANSICode != 1) {
-      $self->log("[SimpleLog] invalid useANSICode choice \"$useANSICode\"",1);
+      $self->log("[SimpleLog] invalid useANSICode value \"$useANSICode\"",1);
       next;
     }
+    if($useANSICode && ! $ansiCodesSupported) {
+      $self->log("[SimpleLog] ignoring useANSICode mode (not supported by terminal)",2);
+      $useANSICode=0;
+    }
     if($useTimestamp != 0 && $useTimestamp != 1) {
-      $self->log("[SimpleLog] invalid useTimestamp choice \"$useTimestamp\"",1);
+      $self->log("[SimpleLog] invalid useTimestamp value \"$useTimestamp\"",1);
       next;
     }
     my %log;
