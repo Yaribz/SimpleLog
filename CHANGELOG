@@ -5,3 +5,4 @@ SimpleLog.pm:
 0.5: add support for ANSI colors on Windows
      change NOTICE color to green (blue was hard to read on some terminals)
      use default stdout log silently in constructor when logging system hasn't been initialized yet
+0.6: adapt default useTimestamp and useANSICode values according to STDOUT being redirected to a file or not

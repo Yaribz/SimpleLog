@@ -1,6 +1,6 @@
 # A Perl module implementing a basic logging functionality.
 #
-# Copyright (C) 2008-2013  Yann Riou <yaribzh@gmail.com>
+# Copyright (C) 2008-2015  Yann Riou <yaribzh@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@ package SimpleLog;
 use strict;
 use FileHandle;
 
-my $moduleVersion='0.5';
+my $moduleVersion='0.6';
 
 my %defaultConf = (logFiles => [],
                    logLevels => [],
@@ -31,8 +31,8 @@ my %defaultConf = (logFiles => [],
 
 my %defaultLog = (fileHandle => undef,
                   level => 5,
-                  useTimestamp => 0,
-                  useANSICode => 0);
+                  useTimestamp => -t STDOUT ? 0 : 1,
+                  useANSICode => -t STDOUT ? 1 : 0);
 
 my @levels = ('CRITICAL','ERROR   ','WARNING ','NOTICE  ','INFO    ','DEBUG   ');
 my @ansiCodes = (35,31,33,32,37,36);
