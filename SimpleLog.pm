@@ -21,7 +21,14 @@ package SimpleLog;
 use strict;
 use FileHandle;
 
-my $moduleVersion='0.6';
+my $moduleVersion='0.7';
+
+
+my $ansiCodesSupported=1;
+if($^O eq 'MSWin32') {
+  eval 'use Win32::Console::ANSI';
+  $ansiCodesSupported=0 if($@);
+}
 
 my %defaultConf = (logFiles => [],
                    logLevels => [],
@@ -32,7 +39,7 @@ my %defaultConf = (logFiles => [],
 my %defaultLog = (fileHandle => undef,
                   level => 5,
                   useTimestamp => -t STDOUT ? 0 : 1,
-                  useANSICode => -t STDOUT ? 1 : 0);
+                  useANSICode => -t STDOUT ? $ansiCodesSupported : 0);
 
 my @levels = ('CRITICAL','ERROR   ','WARNING ','NOTICE  ','INFO    ','DEBUG   ');
 my @ansiCodes = (35,31,33,32,37,36);
@@ -72,11 +79,6 @@ sub new {
     || ($#logFiles != $#useTimestamps) ) {
     $self->log("[SimpleLog] Unable to initialize SimpleLog, inconsistent constructor parameters",0);
     return 0;
-  }
-  my $ansiCodesSupported=1;
-  if($^O eq 'MSWin32') {
-    eval 'use Win32::Console::ANSI';
-    $ansiCodesSupported=0 if($@);
   }
   my @logs;
   my $logIndex=0;
