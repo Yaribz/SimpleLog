@@ -1,6 +1,6 @@
 # A Perl module implementing a basic logging functionality.
 #
-# Copyright (C) 2008-2015  Yann Riou <yaribzh@gmail.com>
+# Copyright (C) 2008-2020  Yann Riou <yaribzh@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,9 +19,11 @@
 package SimpleLog;
 
 use strict;
-use FileHandle;
 
-my $moduleVersion='0.7';
+use FileHandle;
+use File::Spec;
+
+my $moduleVersion='0.8';
 
 
 my $ansiCodesSupported=1;
@@ -36,7 +38,7 @@ my %defaultConf = (logFiles => [],
                    useTimestamps => [],
                    prefix => '');
 
-my %defaultLog = (fileHandle => undef,
+my %defaultLog = (canonPath => undef,
                   level => 5,
                   useTimestamp => -t STDOUT ? 0 : 1,
                   useANSICode => -t STDOUT ? $ansiCodesSupported : 0);
@@ -44,15 +46,33 @@ my %defaultLog = (fileHandle => undef,
 my @levels = ('CRITICAL','ERROR   ','WARNING ','NOTICE  ','INFO    ','DEBUG   ');
 my @ansiCodes = (35,31,33,32,37,36);
 
+my %openHandles;
+
 sub getVersion {
   return $moduleVersion;
 }
 
-sub buildTimestamp {
+sub _buildTimestamp {
   my @time = localtime();
   $time[4]++;
   @time = map(sprintf('%02d',$_),@time);
   return ($time[5]+1900).$time[4].$time[3].$time[2].$time[1].$time[0]
+}
+
+sub _registerFileHandle {
+  my $filePath=shift;
+  my $canonPath=File::Spec->canonpath($filePath);
+  $canonPath=lc($canonPath) if($^O eq 'MSWin32');
+  if(! exists $openHandles{$canonPath}) {
+    my $fileHandle = new FileHandle;
+    $fileHandle->open($filePath,'>>')
+        or return undef;
+    $fileHandle->autoflush(1);
+    $openHandles{$canonPath}={fh => $fileHandle, count => 1};
+  }else{
+    $openHandles{$canonPath}{count}++;
+  }
+  return $canonPath;
 }
 
 sub new {
@@ -87,15 +107,13 @@ sub new {
     my $logLevel=$logLevels[$paramIndex];
     my $useANSICode=$useANSICodes[$paramIndex];
     my $useTimestamp=$useTimestamps[$paramIndex];
-    my $logFileHandle = new FileHandle;
+    my $logFileCanonPath;
     if($logFile) {
-      if(! $logFileHandle->open(">> $logFile")) {
+      $logFileCanonPath=_registerFileHandle($logFile);
+      if(! defined $logFileCanonPath) {
         $self->log("[SimpleLog] Unable to open \"$logFile\" for writing",1);
         next;
       }
-      $logFileHandle->autoflush(1);
-    }else{
-      $logFileHandle=undef;
     }
     if(! grep {/^$logLevel$/} (0..5)) {
       $self->log("[SimpleLog] invalid log level \"$logLevel\"",1);
@@ -113,16 +131,25 @@ sub new {
       $self->log("[SimpleLog] invalid useTimestamp value \"$useTimestamp\"",1);
       next;
     }
-    my %log;
-    $log{fileHandle}=$logFileHandle;
-    $log{level}=$logLevel;
-    $log{useANSICode}=$useANSICode;
-    $log{useTimestamp}=$useTimestamp;
+    my %log = ( canonPath => $logFileCanonPath,
+                level => $logLevel,
+                useANSICode => $useANSICode,
+                useTimestamp => $useTimestamp );
     $logs[$logIndex]=\%log;
     $logIndex++;
   }
   $self->{logs}=\@logs;
   return $self;
+}
+
+sub DESTROY {
+  my $self=shift;
+  foreach my $r_log (@{$self->{logs}}) {
+    next unless(defined $r_log->{canonPath});
+    if(--$openHandles{$r_log->{canonPath}}{count} == 0) {
+      delete $openHandles{$r_log->{canonPath}};
+    }
+  }
 }
 
 sub log {
@@ -139,7 +166,7 @@ sub log {
     return if($l > $log{level});
     my $ts = '';
     if($log{useTimestamp}) {
-      $ts=buildTimestamp()." - ";
+      $ts=_buildTimestamp()." - ";
     }
     my ($coloredAnsiSequence,$coloredBoldAnsiSequence,$normalAnsiSequence)=('','','');
     if($log{useANSICode}) {
@@ -148,8 +175,8 @@ sub log {
       $normalAnsiSequence="[0m";
     }
     my $logMessage=$coloredAnsiSequence.$ts.$coloredBoldAnsiSequence.$levels[$l].$coloredAnsiSequence." - $m$normalAnsiSequence\n";
-    if($log{fileHandle}) {
-      my $fh=$log{fileHandle};
+    if(defined $log{canonPath}) {
+      my $fh=$openHandles{$log{canonPath}}{fh};
       print $fh $logMessage;
     }else{
       print $logMessage;

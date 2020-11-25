@@ -7,3 +7,4 @@ SimpleLog.pm:
      use default stdout log silently in constructor when logging system hasn't been initialized yet
 0.6: adapt default useTimestamp and useANSICode values according to STDOUT being redirected to a file or not
 0.7: do not try to use ANSI codes mode in default log if the terminal doesn't support it
+0.8: avoid opening multiple file handles to same log file
