@@ -23,7 +23,7 @@ use strict;
 use FileHandle;
 use File::Spec;
 
-my $moduleVersion='0.8';
+my $moduleVersion='0.9';
 
 
 my $ansiCodesSupported=1;
@@ -65,7 +65,7 @@ sub _registerFileHandle {
   $canonPath=lc($canonPath) if($^O eq 'MSWin32');
   if(! exists $openHandles{$canonPath}) {
     my $fileHandle = new FileHandle;
-    $fileHandle->open($filePath,'>>')
+    $fileHandle->open($filePath,'>>:encoding(utf-8)')
         or return undef;
     $fileHandle->autoflush(1);
     $openHandles{$canonPath}={fh => $fileHandle, count => 1};
