@@ -9,3 +9,4 @@ SimpleLog.pm:
 0.7: do not try to use ANSI codes mode in default log if the terminal doesn't support it
 0.8: avoid opening multiple file handles to same log file
 0.9: use UTF-8 encoding
+0.10: fix log messages being ignored when multiple log outputs are specified in increasing log level order

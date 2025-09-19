@@ -1,6 +1,6 @@
 # A Perl module implementing a basic logging functionality.
 #
-# Copyright (C) 2008-2020  Yann Riou <yaribzh@gmail.com>
+# Copyright (C) 2008-2025  Yann Riou <yaribzh@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@ use strict;
 use FileHandle;
 use File::Spec;
 
-my $moduleVersion='0.9';
+my $moduleVersion='0.10';
 
 
 my $ansiCodesSupported=1;
@@ -163,7 +163,7 @@ sub log {
   }
   foreach my $p_log (@logs) {
     my %log=%{$p_log};
-    return if($l > $log{level});
+    next if($l > $log{level});
     my $ts = '';
     if($log{useTimestamp}) {
       $ts=_buildTimestamp()." - ";
